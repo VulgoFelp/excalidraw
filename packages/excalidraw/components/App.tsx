@@ -438,7 +438,7 @@ import { actionTextAutoResize } from "../actions/actionTextAutoResize";
 import { getVisibleSceneBounds } from "../element/bounds";
 import { isMaybeMermaidDefinition } from "../mermaid";
 import NewElementCanvas from "./canvases/NewElementCanvas";
-import { mutateElbowArrow, updateElbowArrow } from "../element/routing";
+import { updateElbowArrow } from "../element/routing";
 import {
   FlowChartCreator,
   FlowChartNavigator,
@@ -5634,40 +5634,22 @@ class App extends React.Component<AppProps, AppState> {
         if (isPathALoop(points, this.state.zoom.value)) {
           setCursor(this.interactiveCanvas, CURSOR_TYPE.POINTER);
         }
-        if (isElbowArrow(multiElement)) {
-          mutateElbowArrow(
-            multiElement,
-            this.scene.getNonDeletedElementsMap(),
-            [
+
+        // update last uncommitted point
+        mutateElement(
+          multiElement,
+          {
+            points: [
               ...points.slice(0, -1),
               pointFrom<LocalPoint>(
                 lastCommittedX + dxFromLastCommitted,
                 lastCommittedY + dyFromLastCommitted,
               ),
             ],
-            undefined,
-            undefined,
-            {
-              isDragging: true,
-              informMutation: false,
-            },
-          );
-        } else {
-          // update last uncommitted point
-          mutateElement(
-            multiElement,
-            {
-              points: [
-                ...points.slice(0, -1),
-                pointFrom<LocalPoint>(
-                  lastCommittedX + dxFromLastCommitted,
-                  lastCommittedY + dyFromLastCommitted,
-                ),
-              ],
-            },
-            false,
-          );
-        }
+          },
+          false,
+          true,
+        );
 
         // in this path, we're mutating multiElement to reflect
         // how it will be after adding pointer position as the next point
@@ -7740,36 +7722,32 @@ class App extends React.Component<AppProps, AppState> {
             elementsMap,
           );
           const isHorizontal = startPoint[0] === endPoint[0];
-          LinearElementEditor.movePoints(
-            arrow,
-            [
-              {
-                index: segmentIdx! - 1,
-                point: LinearElementEditor.pointFromAbsoluteCoords(
-                  arrow,
-                  pointFrom(
-                    isHorizontal ? pointerCoords.x : startPoint[0],
-                    !isHorizontal ? pointerCoords.y : startPoint[1],
-                  ),
-                  elementsMap,
+          LinearElementEditor.movePoints(arrow, [
+            {
+              index: segmentIdx! - 1,
+              point: LinearElementEditor.pointFromAbsoluteCoords(
+                arrow,
+                pointFrom(
+                  isHorizontal ? pointerCoords.x : startPoint[0],
+                  !isHorizontal ? pointerCoords.y : startPoint[1],
                 ),
-                isDragging: true,
-              },
-              {
-                index: segmentIdx!,
-                point: LinearElementEditor.pointFromAbsoluteCoords(
-                  arrow,
-                  pointFrom(
-                    isHorizontal ? pointerCoords.x : endPoint[0],
-                    !isHorizontal ? pointerCoords.y : endPoint[1],
-                  ),
-                  elementsMap,
+                elementsMap,
+              ),
+              isDragging: true,
+            },
+            {
+              index: segmentIdx!,
+              point: LinearElementEditor.pointFromAbsoluteCoords(
+                arrow,
+                pointFrom(
+                  isHorizontal ? pointerCoords.x : endPoint[0],
+                  !isHorizontal ? pointerCoords.y : endPoint[1],
                 ),
-                isDragging: true,
-              },
-            ],
-            elementsMap,
-          );
+                elementsMap,
+              ),
+              isDragging: true,
+            },
+          ]);
           didDrag = true;
         } else if (
           linearElementEditor.pointerDownState.segmentMidpoint.value !== null &&
@@ -8091,25 +8069,17 @@ class App extends React.Component<AppProps, AppState> {
               },
               false,
             );
-          } else if (points.length > 1 && isElbowArrow(newElement)) {
-            mutateElbowArrow(
-              newElement,
-              elementsMap,
-              [...points.slice(0, -1), pointFrom<LocalPoint>(dx, dy)],
-              vector(0, 0),
-              undefined,
-              {
-                isDragging: true,
-                informMutation: false,
-              },
-            );
-          } else if (points.length === 2) {
+          } else if (
+            (points.length > 1 && isElbowArrow(newElement)) ||
+            points.length === 2
+          ) {
             mutateElement(
               newElement,
               {
                 points: [...points.slice(0, -1), pointFrom<LocalPoint>(dx, dy)],
               },
               false,
+              true,
             );
           }
 

@@ -21,7 +21,6 @@ import type {
   NonDeletedSceneElementsMap,
   ExcalidrawTextElement,
   ExcalidrawArrowElement,
-  OrderedExcalidrawElement,
   ExcalidrawElbowArrowElement,
   FixedPoint,
   SceneElementsMap,
@@ -577,10 +576,9 @@ export const updateBoundElements = (
   options?: {
     simultaneouslyUpdated?: readonly ExcalidrawElement[];
     oldSize?: { width: number; height: number };
-    changedElements?: Map<string, OrderedExcalidrawElement>;
   },
 ) => {
-  const { oldSize, simultaneouslyUpdated, changedElements } = options ?? {};
+  const { oldSize, simultaneouslyUpdated } = options ?? {};
   const simultaneouslyUpdatedElementIds = getSimultaneouslyUpdatedElementIds(
     simultaneouslyUpdated,
   );
@@ -656,22 +654,14 @@ export const updateBoundElements = (
       }> => update !== null,
     );
 
-    LinearElementEditor.movePoints(
-      element,
-      updates,
-      elementsMap,
-      {
-        ...(changedElement.id === element.startBinding?.elementId
-          ? { startBinding: bindings.startBinding }
-          : {}),
-        ...(changedElement.id === element.endBinding?.elementId
-          ? { endBinding: bindings.endBinding }
-          : {}),
-      },
-      {
-        changedElements,
-      },
-    );
+    LinearElementEditor.movePoints(element, updates, {
+      ...(changedElement.id === element.startBinding?.elementId
+        ? { startBinding: bindings.startBinding }
+        : {}),
+      ...(changedElement.id === element.endBinding?.elementId
+        ? { endBinding: bindings.endBinding }
+        : {}),
+    });
 
     const boundText = getBoundTextElement(element, elementsMap);
     if (boundText && !boundText.isDeleted) {
@@ -2259,7 +2249,7 @@ const getGlobalFixedPoints = (
 export const getArrowLocalFixedPoints = (
   arrow: ExcalidrawElbowArrowElement,
   elementsMap: ElementsMap,
-): [LocalPoint, LocalPoint] => {
+): LocalPoint[] => {
   const [startPoint, endPoint] = getGlobalFixedPoints(arrow, elementsMap);
 
   return [

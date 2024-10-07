@@ -16,7 +16,6 @@ import type {
   ExcalidrawElement,
   ExcalidrawFlowchartNodeElement,
   NonDeletedSceneElementsMap,
-  OrderedExcalidrawElement,
 } from "./types";
 import { KEYS } from "../keys";
 import type { AppState, PendingExcalidrawElements } from "../types";
@@ -438,34 +437,12 @@ const createBindingArrow = (
     elementsMap as NonDeletedSceneElementsMap,
   );
 
-  const changedElements = new Map<string, OrderedExcalidrawElement>();
-  changedElements.set(
-    startBindingElement.id,
-    startBindingElement as OrderedExcalidrawElement,
-  );
-  changedElements.set(
-    endBindingElement.id,
-    endBindingElement as OrderedExcalidrawElement,
-  );
-  changedElements.set(
-    bindingArrow.id,
-    bindingArrow as OrderedExcalidrawElement,
-  );
-
-  LinearElementEditor.movePoints(
-    bindingArrow,
-    [
-      {
-        index: 1,
-        point: bindingArrow.points[1],
-      },
-    ],
-    elementsMap as NonDeletedSceneElementsMap,
-    undefined,
+  LinearElementEditor.movePoints(bindingArrow, [
     {
-      changedElements,
+      index: 1,
+      point: bindingArrow.points[1],
     },
-  );
+  ]);
 
   return bindingArrow;
 };

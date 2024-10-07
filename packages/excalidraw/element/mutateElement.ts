@@ -1,15 +1,65 @@
-import type { ExcalidrawElement } from "./types";
+import type {
+  ExcalidrawElbowArrowElement,
+  ExcalidrawLinearElement,
+} from "./types";
+import { type ExcalidrawElement } from "./types";
 import Scene from "../scene/Scene";
 import { getSizeFromPoints } from "../points";
 import { randomInteger } from "../random";
-import { getUpdatedTimestamp } from "../utils";
+import { getUpdatedTimestamp, invariant } from "../utils";
 import type { Mutable } from "../utility-types";
 import { ShapeCache } from "../scene/ShapeCache";
+import { isElbowArrow, isFixedPointBinding } from "./typeChecks";
+import { updateElbowArrow } from "./routing";
+import type { Radians } from "../../math";
 
 export type ElementUpdate<TElement extends ExcalidrawElement> = Omit<
   Partial<TElement>,
   "id" | "version" | "versionNonce" | "updated"
 >;
+
+const isLinearUpdate = (
+  update: unknown,
+): update is ElementUpdate<ExcalidrawLinearElement> =>
+  typeof update === "object" &&
+  update !== null &&
+  Object.hasOwn(update, "points");
+
+const isElbowArrowUpdate = (
+  update: unknown,
+): update is ElementUpdate<ExcalidrawElbowArrowElement> => {
+  if (typeof update === "object" && update !== null) {
+    if (isLinearUpdate(update)) {
+      return true;
+    }
+
+    if (Object.hasOwn(update, "fixedSegments")) {
+      return true;
+    }
+
+    if (
+      Object.hasOwn(update, "startBinding") &&
+      // @ts-ignore
+      update.startBinding !== null &&
+      // @ts-ignore
+      isFixedPointBinding(update.startBinding)
+    ) {
+      return true;
+    }
+
+    if (
+      Object.hasOwn(update, "endBinding") &&
+      // @ts-ignore
+      update.endBinding !== null &&
+      // @ts-ignore
+      isFixedPointBinding(update.endBinding)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+};
 
 // This function tracks updates of text elements for the purposes for collaboration.
 // The version is used to compare updates when more than one user is working in
@@ -19,14 +69,37 @@ export const mutateElement = <TElement extends Mutable<ExcalidrawElement>>(
   element: TElement,
   updates: ElementUpdate<TElement>,
   informMutation = true,
+  isDragging = false,
+  disableBinding = false,
 ): TElement => {
   let didChange = false;
 
   // casting to any because can't use `in` operator
   // (see https://github.com/microsoft/TypeScript/issues/21732)
-  const { points, fileId } = updates as any;
+  const { fileId } = updates as any;
+  let { points } = updates as any;
 
   if (typeof points !== "undefined") {
+    if (isElbowArrow(element) && isElbowArrowUpdate(updates)) {
+      const elementsMap = Scene.getScene(element)?.getNonDeletedElementsMap();
+
+      invariant(
+        elementsMap,
+        "Elbow arrow being modified is not part of any scene",
+      );
+
+      points = updateElbowArrow(element, elementsMap, updates, {
+        isDragging,
+        disableBinding,
+      });
+
+      // Just for safety...
+      updates = {
+        angle: 0 as Radians,
+        ...updates,
+      };
+    }
+
     updates = { ...getSizeFromPoints(points), ...updates };
   }
 

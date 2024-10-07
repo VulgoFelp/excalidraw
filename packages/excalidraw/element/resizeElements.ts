@@ -53,7 +53,6 @@ import {
 } from "./textElement";
 import { LinearElementEditor } from "./linearElementEditor";
 import { isInGroup } from "../groups";
-import { mutateElbowArrow } from "./routing";
 import type { GlobalPoint } from "../../math";
 import {
   pointCenter,
@@ -1059,7 +1058,7 @@ const rotateMultipleElements = (
 
       if (isElbowArrow(element)) {
         const points = getArrowLocalFixedPoints(element, elementsMap);
-        mutateElbowArrow(element, elementsMap, points);
+        mutateElement(element, { points }, false);
       } else {
         mutateElement(
           element,
