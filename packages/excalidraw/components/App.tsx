@@ -2606,6 +2606,7 @@ class App extends React.Component<AppProps, AppState> {
         this.excalidrawContainerRef.current,
         EVENT.WHEEL,
         this.handleWheel,
+        { passive: false },
       ),
       addEventListener(
         this.excalidrawContainerRef.current,
@@ -9579,6 +9580,7 @@ class App extends React.Component<AppProps, AppState> {
       this.interactiveCanvas.addEventListener(
         EVENT.TOUCH_START,
         this.onTouchStart,
+        { passive: false },
       );
       this.interactiveCanvas.addEventListener(EVENT.TOUCH_END, this.onTouchEnd);
       // -----------------------------------------------------------------------
