@@ -25,6 +25,7 @@ import type {
   FixedPoint,
   SceneElementsMap,
   ExcalidrawRectanguloidElement,
+  OrderedExcalidrawElement,
 } from "./types";
 
 import type { Bounds } from "./bounds";
@@ -576,9 +577,10 @@ export const updateBoundElements = (
   options?: {
     simultaneouslyUpdated?: readonly ExcalidrawElement[];
     oldSize?: { width: number; height: number };
+    changedElements?: Map<string, OrderedExcalidrawElement>;
   },
 ) => {
-  const { oldSize, simultaneouslyUpdated } = options ?? {};
+  const { oldSize, simultaneouslyUpdated, changedElements } = options ?? {};
   const simultaneouslyUpdatedElementIds = getSimultaneouslyUpdatedElementIds(
     simultaneouslyUpdated,
   );
@@ -654,14 +656,19 @@ export const updateBoundElements = (
       }> => update !== null,
     );
 
-    LinearElementEditor.movePoints(element, updates, {
-      ...(changedElement.id === element.startBinding?.elementId
-        ? { startBinding: bindings.startBinding }
-        : {}),
-      ...(changedElement.id === element.endBinding?.elementId
-        ? { endBinding: bindings.endBinding }
-        : {}),
-    });
+    LinearElementEditor.movePoints(
+      element,
+      updates,
+      {
+        ...(changedElement.id === element.startBinding?.elementId
+          ? { startBinding: bindings.startBinding }
+          : {}),
+        ...(changedElement.id === element.endBinding?.elementId
+          ? { endBinding: bindings.endBinding }
+          : {}),
+      },
+      { changedElements },
+    );
 
     const boundText = getBoundTextElement(element, elementsMap);
     if (boundText && !boundText.isDeleted) {

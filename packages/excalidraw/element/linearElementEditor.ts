@@ -9,6 +9,7 @@ import type {
   NonDeletedSceneElementsMap,
   FixedPointBinding,
   SceneElementsMap,
+  OrderedExcalidrawElement,
 } from "./types";
 import { getElementAbsoluteCoords, getLockedLinearCursorAlignSize } from ".";
 import type { Bounds } from "./bounds";
@@ -1232,6 +1233,9 @@ export class LinearElementEditor {
       endBinding?: PointBinding | null;
       fixedSegments?: number[] | null;
     },
+    options?: {
+      changedElements?: Map<string, OrderedExcalidrawElement>;
+    },
   ) {
     const { points } = element;
 
@@ -1276,6 +1280,7 @@ export class LinearElementEditor {
       offsetY,
       otherUpdates,
       {
+        changedElements: options?.changedElements,
         isDragging: targetPoints.reduce(
           (dragging, targetPoint): boolean =>
             dragging || targetPoint.isDragging === true,
@@ -1393,6 +1398,7 @@ export class LinearElementEditor {
       fixedSegments?: number[] | null;
     },
     options?: {
+      changedElements?: Map<string, OrderedExcalidrawElement>;
       isDragging?: boolean;
     },
   ) {
@@ -1446,12 +1452,20 @@ export class LinearElementEditor {
         pointFrom(dX, dY),
         element.angle,
       );
-      mutateElement(element, {
-        ...otherUpdates,
-        points: nextPoints,
-        x: element.x + rotated[0],
-        y: element.y + rotated[1],
-      });
+
+      mutateElement(
+        element,
+        {
+          ...otherUpdates,
+          points: nextPoints,
+          x: element.x + rotated[0],
+          y: element.y + rotated[1],
+        },
+        true,
+        false,
+        false,
+        options?.changedElements,
+      );
     }
   }
 

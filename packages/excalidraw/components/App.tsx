@@ -438,7 +438,7 @@ import { actionTextAutoResize } from "../actions/actionTextAutoResize";
 import { getVisibleSceneBounds } from "../element/bounds";
 import { isMaybeMermaidDefinition } from "../mermaid";
 import NewElementCanvas from "./canvases/NewElementCanvas";
-import { updateElbowArrow } from "../element/routing";
+import { updateElbowArrowPoints } from "../element/routing";
 import {
   FlowChartCreator,
   FlowChartNavigator,
@@ -446,7 +446,7 @@ import {
 } from "../element/flowchart";
 import { searchItemInFocusAtom } from "./SearchMenu";
 import type { LocalPoint, Radians } from "../../math";
-import { pointFrom, pointDistance, vector } from "../../math";
+import { pointFrom, pointDistance } from "../../math";
 
 const AppContext = React.createContext<AppClassProperties>(null!);
 const AppPropsContext = React.createContext<AppProps>(null!);
@@ -3125,7 +3125,7 @@ class App extends React.Component<AppProps, AppState> {
         const endBinding = startEndElements[1] ? el.endBinding : null;
         return {
           ...el,
-          ...updateElbowArrow(
+          points: updateElbowArrowPoints(
             {
               ...el,
               startBinding,
@@ -3144,7 +3144,9 @@ class App extends React.Component<AppProps, AppState> {
                   ),
               ),
             ),
-            [el.points[0], el.points[el.points.length - 1]],
+            {
+              points: [el.points[0], el.points[el.points.length - 1]],
+            },
           ),
         };
       }

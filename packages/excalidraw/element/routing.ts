@@ -69,7 +69,16 @@ type Grid = {
 
 const BASE_PADDING = 40;
 
-export const updateElbowArrow = (
+/**
+ * Calculate the elbow arrow local points given the updates
+ *
+ * @param arrow The elbow arrow element to calculate new points for
+ * @param elementsMap The map used to look up bound elements to the elbow arrow
+ * @param updates The updates to apply to the element, including the new points
+ * @param options Any options where applicable to influence the calculations
+ * @returns The new local points for the elbow arrow
+ */
+export const updateElbowArrowPoints = (
   arrow: ExcalidrawElbowArrowElement,
   elementsMap: NonDeletedSceneElementsMap | SceneElementsMap,
   updates: ElementUpdate<ExcalidrawElbowArrowElement>,
@@ -82,14 +91,6 @@ export const updateElbowArrow = (
     updates.points,
     "Recalculating elbow arrow points without any point updates",
   );
-
-  // Merge a set of arrow points with offet, new points overriding any old points
-  // const nextPoints = Array.from(arrow.points);
-  // nextPoints[0] = pointTranslate(update.points[0], offset);
-  // nextPoints[nextPoints.length - 1] = pointTranslate(
-  //   update.points[update.points.length - 1],
-  //   offset,
-  // );
 
   // Segment index
   const nextFixedSegments = (updates.fixedSegments ?? []).sort();
@@ -202,7 +203,7 @@ export const updateElbowArrow = (
     );
   });
 
-  return points ? normalizedArrowElementUpdate(points) : updates.points!;
+  return points ? normalizeArrowPoints(points) : updates.points!;
 };
 
 /**
@@ -1040,15 +1041,10 @@ const getBindableElementForId = (
   return null;
 };
 
-const normalizedArrowElementUpdate = (global: GlobalPoint[]): LocalPoint[] => {
-  const points = global.map((p) =>
-    pointTranslate<GlobalPoint, LocalPoint>(
-      p,
-      vectorScale(vectorFromPoint(global[0]), -1),
-    ),
-  );
+const normalizeArrowPoints = (global: GlobalPoint[]): LocalPoint[] => {
+  const origin = vectorScale(vectorFromPoint(global[0]), -1);
 
-  return points;
+  return global.map((p) => pointTranslate<GlobalPoint, LocalPoint>(p, origin));
 };
 
 /// If last and current segments have the same heading, skip the middle point

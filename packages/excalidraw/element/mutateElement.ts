@@ -1,65 +1,24 @@
 import type {
   ExcalidrawElbowArrowElement,
   ExcalidrawLinearElement,
+  OrderedExcalidrawElement,
+  SceneElementsMap,
 } from "./types";
 import { type ExcalidrawElement } from "./types";
 import Scene from "../scene/Scene";
 import { getSizeFromPoints } from "../points";
 import { randomInteger } from "../random";
-import { getUpdatedTimestamp, invariant } from "../utils";
+import { getUpdatedTimestamp, toBrandedType } from "../utils";
 import type { Mutable } from "../utility-types";
 import { ShapeCache } from "../scene/ShapeCache";
 import { isElbowArrow, isFixedPointBinding } from "./typeChecks";
-import { updateElbowArrow } from "./routing";
+import { updateElbowArrowPoints } from "./routing";
 import type { Radians } from "../../math";
 
 export type ElementUpdate<TElement extends ExcalidrawElement> = Omit<
   Partial<TElement>,
   "id" | "version" | "versionNonce" | "updated"
 >;
-
-const isLinearUpdate = (
-  update: unknown,
-): update is ElementUpdate<ExcalidrawLinearElement> =>
-  typeof update === "object" &&
-  update !== null &&
-  Object.hasOwn(update, "points");
-
-const isElbowArrowUpdate = (
-  update: unknown,
-): update is ElementUpdate<ExcalidrawElbowArrowElement> => {
-  if (typeof update === "object" && update !== null) {
-    if (isLinearUpdate(update)) {
-      return true;
-    }
-
-    if (Object.hasOwn(update, "fixedSegments")) {
-      return true;
-    }
-
-    if (
-      Object.hasOwn(update, "startBinding") &&
-      // @ts-ignore
-      update.startBinding !== null &&
-      // @ts-ignore
-      isFixedPointBinding(update.startBinding)
-    ) {
-      return true;
-    }
-
-    if (
-      Object.hasOwn(update, "endBinding") &&
-      // @ts-ignore
-      update.endBinding !== null &&
-      // @ts-ignore
-      isFixedPointBinding(update.endBinding)
-    ) {
-      return true;
-    }
-  }
-
-  return false;
-};
 
 // This function tracks updates of text elements for the purposes for collaboration.
 // The version is used to compare updates when more than one user is working in
@@ -71,6 +30,7 @@ export const mutateElement = <TElement extends Mutable<ExcalidrawElement>>(
   informMutation = true,
   isDragging = false,
   disableBinding = false,
+  changedElements?: Map<string, OrderedExcalidrawElement>,
 ): TElement => {
   let didChange = false;
 
@@ -81,14 +41,14 @@ export const mutateElement = <TElement extends Mutable<ExcalidrawElement>>(
 
   if (typeof points !== "undefined") {
     if (isElbowArrow(element) && isElbowArrowUpdate(updates)) {
-      const elementsMap = Scene.getScene(element)?.getNonDeletedElementsMap();
-
-      invariant(
-        elementsMap,
-        "Elbow arrow being modified is not part of any scene",
+      const mergedElementsMap = toBrandedType<SceneElementsMap>(
+        new Map([
+          ...(Scene.getScene(element)?.getNonDeletedElementsMap() ?? []),
+          ...(changedElements ?? []),
+        ]),
       );
 
-      points = updateElbowArrow(element, elementsMap, updates, {
+      points = updateElbowArrowPoints(element, mergedElementsMap, updates, {
         isDragging,
         disableBinding,
       });
@@ -100,7 +60,7 @@ export const mutateElement = <TElement extends Mutable<ExcalidrawElement>>(
       };
     }
 
-    updates = { ...getSizeFromPoints(points), ...updates };
+    updates = { ...getSizeFromPoints(points), points, ...updates };
   }
 
   for (const key in updates) {
@@ -223,4 +183,58 @@ export const bumpVersion = <T extends Mutable<ExcalidrawElement>>(
   element.versionNonce = randomInteger();
   element.updated = getUpdatedTimestamp();
   return element;
+};
+
+/**
+ * Determine if the ElementUpdate is applicable for a linear element
+ *
+ * @param update The value in question
+ * @returns Returns TRUE if it is an applicable update
+ */
+const isLinearUpdate = (
+  update: unknown,
+): update is ElementUpdate<ExcalidrawLinearElement> =>
+  typeof update === "object" &&
+  update !== null &&
+  Object.hasOwn(update, "points");
+
+/**
+ * Determine if the ElementUpdate is applicable for an elbow arrow element
+ * @param update The value in question
+ * @returns Returns TRUE if it is an applicable update
+ */
+const isElbowArrowUpdate = (
+  update: unknown,
+): update is ElementUpdate<ExcalidrawElbowArrowElement> => {
+  if (typeof update === "object" && update !== null) {
+    if (isLinearUpdate(update)) {
+      return true;
+    }
+
+    if (Object.hasOwn(update, "fixedSegments")) {
+      return true;
+    }
+
+    if (
+      Object.hasOwn(update, "startBinding") &&
+      // @ts-ignore
+      update.startBinding !== null &&
+      // @ts-ignore
+      isFixedPointBinding(update.startBinding)
+    ) {
+      return true;
+    }
+
+    if (
+      Object.hasOwn(update, "endBinding") &&
+      // @ts-ignore
+      update.endBinding !== null &&
+      // @ts-ignore
+      isFixedPointBinding(update.endBinding)
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 };
